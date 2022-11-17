@@ -80,8 +80,6 @@ class mu_network(nn.Module):
         self.fc1 = nn.Linear(lin_input_size, lin_l1_size)
         self.fc2 = nn.Linear(lin_l1_size, lin_out_size)
 
-        # Initialize buffer - TODO
-        self.buffer = list(batch_size)  # Containing tuple's (s_t, a_t, r_t, s_(t+1))
 
     def forward(self, state):
         # The first and 2nd convo + pooling layer
