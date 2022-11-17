@@ -1,21 +1,33 @@
 import numpy as np
 import gym
-import cv2
+from gym import wrappers
 import matplotlib.pyplot as plt
 
 from agent import DDPGAgent
-from utils import processState
+from utils import processState, info_about_env
 
-
-# Parameters
+######################
+#     Parameters     #
+######################
 gamma = 0.9
 tau = 0.01
 lr_P, lr_Q = 0.0001, 0.0001
 episodes = 50
 batch_size = 32
 
-# Environment
+######################
+#     Environment    #
+######################
+# Create the environment with a specific seed
 env = gym.make("CarRacing-v2")
+info_about_env(env)
+env.reset(options={"randomize": False}, seed = 42)
+
+# Grayscale the state, with the predefined wrapper in openAI
+env = wrappers.GrayScaleObservation(env)
+
+n_inputs = env.observation_space.shape[0]*env.observation_space.shape[1]
+n_outputs = env.action_space.shape[0]
 
 # Agent
 agent = DDPGAgent(gamma, tau, lr_P, lr_Q)

@@ -41,3 +41,28 @@ def processState(image):
         R * 299 / 1000 + G * 587 / 1000 + B * 114 / 1000, dtype=torch.double
     )
     return grey[None, None, :, :]
+
+
+
+def info_about_env(env):
+    # The action space 
+    a = env.action_space
+    print(f'Action space: [Steering, gas, breaking];\
+                \n\t\tmin_val = {a.low},\
+                \n\t\tmax_val = {a.high},\
+                \n\t\tNo_action = {a.shape[0]},\
+                \n\t\ttype = {a.dtype}' )
+
+    # The return values of the env.step
+    action = env.action_space.sample()
+    state, reward, terminated, truncated, info = env.step(action)
+    print('What is returned from the environment, for each step taken:')
+    print(f'State space, with shape ({type(state).__name__}): {state.shape}')
+    print(f'Reward of the action ({type(reward).__name__}): {reward}')
+    print(f'Terminated ({type(terminated).__name__}): {terminated}')
+    print(f'Truncated ({type(truncated).__name__}): {truncated}')
+    print(f'Info ({type(info).__name__}): {info}')
+
+
+
+
