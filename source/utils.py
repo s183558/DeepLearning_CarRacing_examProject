@@ -35,14 +35,6 @@ class Memory:
         return len(self.buffer)
 
 
-def processState(image):
-    R, G, B = image[:, :, 0], image[:, :, 1], image[:, :, 2]
-    grey = torch.tensor(
-        R * 299 / 1000 + G * 587 / 1000 + B * 114 / 1000, dtype=torch.double
-    )
-    return grey[None, None, :, :]
-
-
 
 def info_about_env(env):
     # The action space 
