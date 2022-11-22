@@ -2,6 +2,7 @@ import numpy as np
 import random
 from collections import deque
 import torch
+import matplotlib.pyplot as plt
 
 
 class Memory:
@@ -11,7 +12,7 @@ class Memory:
 
     def push(self, state, action, reward, next_state, done):
         # Store all the values in the buffer
-        experience = (state, action, np.array([reward]), next_state, done)
+        experience = (state, action, reward, next_state, done)
         self.buffer.append(experience)
 
     def sample(self, batch_size):
@@ -32,8 +33,10 @@ class Memory:
             reward_batch.append(reward)
             next_state_batch.append(next_state)
             done_batch.append(done)
-
-        return state_batch, action_batch, reward_batch, next_state_batch, done_batch
+        
+        return np.array(state_batch), np.array(action_batch),\
+               np.array(reward_batch), np.array(next_state_batch), \
+               np.array(done_batch)
 
     def __len__(self):
         return len(self.buffer)
@@ -60,5 +63,14 @@ def info_about_env(env):
     print(f'Info ({type(info).__name__}): {info}')
 
 
+def plot_learning_curve(x, scores, figure_file):
+    running_avg = np.zeros(len(scores))
+    for i in range(len(running_avg)):
+        running_avg[i] = np.mean(scores[max(0,i-100):(i+1)])
+    plt.plot(x, running_avg)
+    plt.xlabel = 'Episodes'
+    plt.ylabel = 'Reward'
+    plt.title('Running avg of last 100 scores')
+    plt.savefig(figure_file)
 
 
