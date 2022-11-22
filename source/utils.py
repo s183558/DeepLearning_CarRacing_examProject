@@ -6,9 +6,11 @@ import torch
 
 class Memory:
     def __init__(self, max_size):
+        # Initiate a que for our buffer to be stored in
         self.buffer = deque(maxlen=max_size)
 
     def push(self, state, action, reward, next_state, done):
+        # Store all the values in the buffer
         experience = (state, action, np.array([reward]), next_state, done)
         self.buffer.append(experience)
 
@@ -19,6 +21,8 @@ class Memory:
         next_state_batch = []
         done_batch = []
 
+        # Pick "batch_size" number of elements randomly from the buffer
+        # and then return them
         batch = random.sample(self.buffer, batch_size)
 
         for experience in batch:
