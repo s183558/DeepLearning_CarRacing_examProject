@@ -2,24 +2,29 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+import os
 
-class Q_network(nn.Module):
-    def __init__(self,
+# Value network (Q-network)
+class CriticNetwork(nn.Module):
+    def __init__(self, name = 'critic', chkpt_dir = 'tmp',
                  state_size   = (96, 96),
                  input_size   = 1,
-                 cnn_l1_size  = 2,
-                 cnn_l2_size  = 4,
-                 lin_l1_size  = 100,
-                 lin_out_size = 1,
-                 batch_size   = 32,
+                 conv1_dim    = 2,
+                 conv2_dim    = 4,
                  cnn_kernel   = 5,
-                 pool_kernel  = 2):
+                 pool_kernel  = 2,
+                 fc1_dims     = 400,
+                 fc2_dims     = 300):
 
-        super().__init__()
-
-        self.conv1 = nn.Conv2d(input_size, cnn_l1_size, cnn_kernel)
+        super(CriticNetwork, self).__init__()
+        
+        # Filepath to save the parameters of the model
+        self.checkpoint_file = os.path.join(chkpt_dir, name + "_ddpg")
+        
+        # The convolutional layers
+        self.conv1 = nn.Conv2d(input_size, conv1_dim, cnn_kernel)
         self.pool = nn.MaxPool2d(pool_kernel, pool_kernel)
-        self.conv2 = nn.Conv2d(cnn_l1_size, cnn_l2_size, cnn_kernel)
+        self.conv2 = nn.Conv2d(conv1_dim, conv2_dim, cnn_kernel)
 
         # Calculating the output size of the CNN-network
         state_size = np.asarray(state_size)
@@ -27,36 +32,23 @@ class Q_network(nn.Module):
         lin_input_size = self._cnn_size_check(lin_input_size, cnn_kernel, pool_kernel)
 
         # Linear network
-        self.fc1 = nn.Linear((lin_input_size.prod() * cnn_l2_size) + 3, lin_l1_size)
-        self.fc2 = nn.Linear(lin_l1_size, lin_out_size)
+        self.fc1 = nn.Linear((lin_input_size.prod() * conv2_dim) + 3, fc1_dims)
+        self.fc2 = nn.Linear(fc1_dims, fc2_dims)
+        self.q   = nn.Linear(fc2_dims, 1)
+        
 
     def forward(self, state, action):
-        # Turn the image into a tensor if isn't already one
-        if type(state) == np.ndarray:
-             # Rearange the dimensions of the tensor to fit PyTorch
-            if len(state.shape) == 2:
-                state = torch.from_numpy(np.atleast_3d(state)).float()
-                state = torch.permute(state, (2, 0, 1))
-            else:
-                state = torch.from_numpy(np.atleast_3d(state)).float()
-
-
-        # add the one dimension of color (grayscale)
-        state = state[None, :] 
-        state = torch.permute(state, (1, 0, 2, 3)) #(batch, channels, w, h)
-        #print(f'Q forward state shape: {state.shape}')
-        
-
         # The first and 2nd convo + pooling layer
-        x = self.pool(F.relu(self.conv1(state)))
-        x = self.pool(F.relu(self.conv2(x)))
+        state = self.pool(F.relu(self.conv1(state)))
+        state = self.pool(F.relu(self.conv2(state)))
 
         # Flatten the matrix to a vector, to be used in a fully-connected layer
-        x = torch.cat([torch.flatten(x, 1), action], 1)
-        x = F.relu(self.fc1(x))
-        x = self.fc2(x)
+        action_value = torch.cat([torch.flatten(state, 1), action], 1)
+        action_value = F.relu(self.fc1(action_value))
+        action_value = F.relu(self.fc2(action_value))
+        q = self.q(action_value)
 
-        return x
+        return q
 
     def _cnn_size_check(self, img_size, cnn_kernel_size, pool_kernel_size):
         # If the image size is divisible by the pooling kernel, and will be
@@ -71,26 +63,35 @@ class Q_network(nn.Module):
         else:
             print(f"ERROR\nThe size for the linear input is wrong: {img_size}")
             
+    
+    def save_checkpoints(self):
+        torch.save(self.state_dict(), self.checkpoint_file)
         
+    def load_checkpoints(self):
+        self.load_state_dict(torch.load(self.checkpoint_file))
 
 
-class mu_network(nn.Module):
-    def __init__(self,
+class ActorNetwork(nn.Module):
+    def __init__(self, name = 'actor', chkpt_dir = 'tmp',
                  state_size   = (96, 96),
                  input_size   = 1,
-                 cnn_l1_size  = 2,
-                 cnn_l2_size  = 4,
-                 lin_l1_size  = 100,
-                 lin_out_size = 3,
-                 batch_size   = 32,
+                 conv1_dim    = 2,
+                 conv2_dim    = 4,
                  cnn_kernel   = 5,
-                 pool_kernel  = 2):
+                 pool_kernel  = 2,
+                 fc1_dims     = 400,
+                 fc2_dims     = 300,
+                 n_actions    = 3):
 
-        super().__init__()
-
-        self.conv1 = nn.Conv2d(input_size, cnn_l1_size, cnn_kernel)
+        super(ActorNetwork, self).__init__()
+        
+        # Filepath to save the parameters of the model
+        self.checkpoint_file = os.path.join(chkpt_dir, name + "_ddpg")
+        
+        # The convolutional layers
+        self.conv1 = nn.Conv2d(input_size, conv1_dim, cnn_kernel)
         self.pool = nn.MaxPool2d(pool_kernel, pool_kernel)
-        self.conv2 = nn.Conv2d(cnn_l1_size, cnn_l2_size, cnn_kernel)
+        self.conv2 = nn.Conv2d(conv1_dim, conv2_dim, cnn_kernel)
 
         # Calculating the output size of the CNN-network
         state_size = np.asarray(state_size)
@@ -98,44 +99,27 @@ class mu_network(nn.Module):
         lin_input_size = self._cnn_size_check(lin_input_size, cnn_kernel, pool_kernel)
 
         # Linear network
-        self.fc1 = nn.Linear(lin_input_size.prod() * cnn_l2_size, lin_l1_size)
-        self.fc2 = nn.Linear(lin_l1_size, lin_out_size)
-    
-    def forward(self, state):
-        # Turn the image into a tensor if isn't already one
-        if type(state) == np.ndarray:
-             # Rearange the dimensions of the tensor to fit PyTorch
-            if len(state.shape) == 2:
-                state = torch.from_numpy(np.atleast_3d(state)).float()
-                state = torch.permute(state, (2, 0, 1))
-            else:
-                state = torch.from_numpy(np.atleast_3d(state)).float()
+        self.fc1 = nn.Linear(lin_input_size.prod() * conv2_dim, fc1_dims)
+        self.fc2 = nn.Linear(fc1_dims, fc2_dims)
+        self.mu  = nn.Linear(fc2_dims, n_actions)
         
-
-        # add the one dimension of color (grayscale)
-        state = state[None, :] 
-        state = torch.permute(state, (1, 0, 2, 3)) #(batch, channels, w, h)
-        #print(f'Mu forward state shape: {state.shape}')
- 
+        
+    def forward(self, state):
         # The first and 2nd convo + pooling layer
-        x = self.pool(F.relu(self.conv1(state)))
-        x = self.pool(F.relu(self.conv2(x)))
+        state = self.pool(F.relu(self.conv1(state)))
+        state = self.pool(F.relu(self.conv2(state)))
         
         # Flatten the matrix to a vector, to be used in a fully-connected layer
-        x = torch.flatten(x, 1)
-
-        x = F.relu(self.fc1(x))
-        x = self.fc2(x)
-        x[:, 0] = torch.tanh(x[:, 0])
-        x[:, 1:] = torch.sigmoid(x[:, 1:])
-       
-       
-        #print(f'gas before we clip it: {x[:, 1]}')
-        #x[:, 1] = torch.clamp(x[:, 1], min=0.1, max=None)
-
-        #print(f'mu forward, output valus: {x}')
+        prob = torch.flatten(state, 1)
+        prob = F.relu(self.fc1(prob))
+        prob = F.relu(self.fc2(prob))
         
-        return x
+        # Run tanh on the steering (-1, 1) and sigmoid on gas and breaking (0,1)
+        mu = self.mu(prob)
+        mu[:, 0] = torch.tanh(mu[:, 0])
+        mu[:, 1:] = torch.sigmoid(mu[:, 1:])
+       
+        return mu
 
     def _cnn_size_check(self, img_size, cnn_kernel_size, pool_kernel_size):
         # If the image size is divisible by the pooling kernel, and will be
@@ -149,3 +133,14 @@ class mu_network(nn.Module):
             return lin_input_size
         else:
             print(f"ERROR\nThe size for the linear input is wrong: {img_size}")
+    
+    
+    def save_checkpoints(self):
+        torch.save(self.state_dict(), self.checkpoint_file)
+        
+        
+    def load_checkpoints(self):
+        self.load_state_dict(torch.load(self.checkpoint_file))
+        
+        
+        
