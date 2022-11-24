@@ -6,7 +6,7 @@ import os
 
 # Value network (Q-network)
 class CriticNetwork(nn.Module):
-    def __init__(self, name = 'critic', chkpt_dir = 'tmp',
+    def __init__(self, name = 'critic', chkpt_dir = 'tmp_models',
                  state_size   = (96, 96),
                  input_size   = 1,
                  conv1_dim    = 2,
@@ -19,7 +19,8 @@ class CriticNetwork(nn.Module):
         super(CriticNetwork, self).__init__()
         
         # Filepath to save the parameters of the model
-        self.checkpoint_file = os.path.join(chkpt_dir, name + "_ddpg")
+        self.chkpt_dir = chkpt_dir
+        self.name = name
         
         # The convolutional layers
         self.conv1 = nn.Conv2d(input_size, conv1_dim, cnn_kernel)
@@ -32,7 +33,7 @@ class CriticNetwork(nn.Module):
         lin_input_size = self._cnn_size_check(lin_input_size, cnn_kernel, pool_kernel)
 
         # Linear network
-        # The weights and bias' are extracted from a uniform distribution
+        # The weights and bias' are initiated with the Xavier uniform distribution
         self.fc1 = nn.Linear((lin_input_size.prod() * conv2_dim) + 3, fc1_dims)
         f1 = 1/ np.sqrt(self.fc1.weight.data.size()[0])
         torch.nn.init.uniform_(self.fc1.weight.data, -f1, f1)
@@ -78,15 +79,19 @@ class CriticNetwork(nn.Module):
             print(f"ERROR\nThe size for the linear input is wrong: {img_size}")
             
     
-    def save_checkpoints(self):
-        torch.save(self.state_dict(), self.checkpoint_file)
+    def save_checkpoints(self, suffix = ''):
+        checkpoint_file = os.path.join(self.chkpt_dir,
+                                       self.name + "_ddpg" + suffix)
+        torch.save(self.state_dict(), checkpoint_file)
         
-    def load_checkpoints(self):
-        self.load_state_dict(torch.load(self.checkpoint_file))
+    def load_checkpoints(self, suffix = ''):
+        checkpoint_file = os.path.join(self.chkpt_dir,
+                                       self.name + "_ddpg" + suffix)
+        self.load_state_dict(torch.load(checkpoint_file))
 
 
 class ActorNetwork(nn.Module):
-    def __init__(self, name = 'actor', chkpt_dir = 'tmp',
+    def __init__(self, name = 'actor', chkpt_dir = 'tmp_models',
                  state_size   = (96, 96),
                  input_size   = 1,
                  conv1_dim    = 2,
@@ -100,7 +105,8 @@ class ActorNetwork(nn.Module):
         super(ActorNetwork, self).__init__()
         
         # Filepath to save the parameters of the model
-        self.checkpoint_file = os.path.join(chkpt_dir, name + "_ddpg")
+        self.chkpt_dir = chkpt_dir
+        self.name = name
         
         # The convolutional layers
         self.conv1 = nn.Conv2d(input_size, conv1_dim, cnn_kernel)
@@ -113,7 +119,7 @@ class ActorNetwork(nn.Module):
         lin_input_size = self._cnn_size_check(lin_input_size, cnn_kernel, pool_kernel)
 
         # Linear network
-        # The weights and bias' are extracted from a uniform distribution
+        # The weights and bias' are initiated with the Xavier uniform distribution
         self.fc1 = nn.Linear(lin_input_size.prod() * conv2_dim, fc1_dims)
         f1 = 1/ np.sqrt(self.fc1.weight.data.size()[0])
         torch.nn.init.uniform_(self.fc1.weight.data, -f1, f1)
@@ -146,7 +152,7 @@ class ActorNetwork(nn.Module):
         mu = self.mu(prob)
         mu[:, 0] = torch.tanh(mu[:, 0])
         mu[:, 1:] = torch.sigmoid(mu[:, 1:])
-       
+        
         return mu
 
     def _cnn_size_check(self, img_size, cnn_kernel_size, pool_kernel_size):
@@ -163,12 +169,16 @@ class ActorNetwork(nn.Module):
             print(f"ERROR\nThe size for the linear input is wrong: {img_size}")
     
     
-    def save_checkpoints(self):
-        torch.save(self.state_dict(), self.checkpoint_file)
+    def save_checkpoints(self, suffix = ''):
+        checkpoint_file = os.path.join(self.chkpt_dir,
+                                       self.name + "_ddpg" + suffix)
+        torch.save(self.state_dict(), checkpoint_file)
         
         
-    def load_checkpoints(self):
-        self.load_state_dict(torch.load(self.checkpoint_file))
+    def load_checkpoints(self, suffix = ''):
+        checkpoint_file = os.path.join(self.chkpt_dir,
+                                       self.name + "_ddpg" + suffix)
+        self.load_state_dict(torch.load(checkpoint_file))
         
         
         
