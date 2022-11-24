@@ -67,10 +67,12 @@ def plot_learning_curve(x, scores, figure_file):
     running_avg = np.zeros(len(scores))
     for i in range(len(running_avg)):
         running_avg[i] = np.mean(scores[max(0,i-100):(i+1)])
-    plt.plot(x, running_avg)
+    plt.plot(x, running_avg, label = 'running avg')
+    plt.plot(x, scores, label = 'score')
     plt.xlabel = 'Episodes'
     plt.ylabel = 'Reward'
     plt.title('Running avg of last 100 scores')
+    plt.legend(loc = 'best')
     plt.savefig(figure_file)
 
 
