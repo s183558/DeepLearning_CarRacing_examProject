@@ -52,8 +52,12 @@ for e in range(episodes):
         # Take the action in our current state
         state_next, reward, done, done2, _ = env.step(action)
         
+        # If the agent gives some gas it get a bonus reward
+        if action[1] > 0.1:
+            bonus_reward = abs(reward *0.5)
+            
         # Add the reward from the step to our score
-        score += reward
+        score += reward + bonus_reward
         
         # Throm all our variables in the memory
         agent.remember(state, action, reward, state_next, np.array([done, done2]).any())
@@ -85,6 +89,8 @@ for e in range(episodes):
     
     print(f'Episode {e+1}, score: {score:.1f}, avg_score: {avg_score:.1f}')
 
+# Save the final paramters of the model
+agent.save_models('final')
 
 x = [i + 1 for i in range(episodes)]
 plot_learning_curve(x, rewards, figure_file)
