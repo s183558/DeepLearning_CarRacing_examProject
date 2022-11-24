@@ -63,6 +63,8 @@ class DDPGAgent:
         
         
     def getAction(self, state, evaluate = False):
+        self.actor.eval()
+        
         # Get an action from the actor network of this specific state
         state   = torch.FloatTensor(state).to(self.device)
         state   = torch.permute(state[None, :], (0, 3, 1, 2))
@@ -76,6 +78,8 @@ class DDPGAgent:
             # Clip the action values to not exceed the boundaries
             actions = torch.clamp(actions, min = self.min_action_val,
                                            max = self.max_action_val)
+        
+        self.actor.train()
         
         return actions.cpu().detach().numpy()
         
@@ -109,21 +113,26 @@ class DDPGAgent:
         # Get a "batch_size" number of samples from our memory buffer
         state, action, reward, state_next, done = self.memory.sample(self.batch_size)
         
-        self.actor.zero_grad()
-        self.critic.zero_grad()
-        self.actor_optimizer.zero_grad()
-        
         state      = torch.FloatTensor(state).to(self.device)
         action     = torch.FloatTensor(action).to(self.device)
         reward     = torch.FloatTensor(reward).to(self.device)
         state_next = torch.FloatTensor(state_next).to(self.device)
         done       = torch.IntTensor(done).to(self.device)
         
+        # Put the network into evaluation
+        self.target_actor.eval()
+        self.target_critic.eval()
+        self.critic.eval()
+        
+        
         # Q loss
         # Calculate y_i (Q-val/(total future reward) for the target net)
         target_actions    = self.target_actor.forward(state_next)
         target_critic_val = self.target_critic.forward(state_next, target_actions)
         y_i = reward + self.gamma * target_critic_val * (1-done)
+        
+        # Set the critic network back into training mode
+        self.critic.train()
         
         # With y_i, we just need Q_val of our online critic net.
         # We do MSE to find the critic loss
@@ -139,15 +148,18 @@ class DDPGAgent:
         # Policy loss
         # The policy loss is found by taking the mean of the gradient ascendt
         # of the critic network.
+        self.critic.eval()
         self.actor_optimizer.zero_grad()
-        actor_loss = -self.critic.forward(state, self.actor.forward(state))
+        mu = self.actor.forward(state)
+        self.actor.train()
+        actor_loss = -self.critic.forward(state, mu)
         actor_loss = torch.mean(actor_loss)
         
         # Backpropegate the loss through the network
         actor_loss.backward()
-       # print(f"\n.-.-.-.--.-.-.-.-\n\nbf optimizer step: \n{ self.actor.fc1.bias.grad}")   
         self.actor_optimizer.step()
-       # print(f"\nAfter optimizer step: actor_loss = {actor_loss.cpu().detach().numpy()}\nBias_grad in fc1:\n {self.actor.fc1.bias.grad}")
+        print(f"after optimizer step: [min: { min(self.actor.fc1.bias.grad):.2E}, max: {max(self.actor.fc1.bias.grad):.2E}, avg: {torch.mean(self.actor.fc1.bias.grad):.2E}]")   
+        # print(f"\nAfter optimizer step: actor_loss = {actor_loss.cpu().detach().numpy()}\nBias_grad in fc1:\n {self.actor.fc1.bias.grad}")
         
         # Lastly we update the target networks
         self.update_target_networks()

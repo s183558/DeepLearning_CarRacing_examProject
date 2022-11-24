@@ -32,9 +32,23 @@ class CriticNetwork(nn.Module):
         lin_input_size = self._cnn_size_check(lin_input_size, cnn_kernel, pool_kernel)
 
         # Linear network
+        # The weights and bias' are extracted from a uniform distribution
         self.fc1 = nn.Linear((lin_input_size.prod() * conv2_dim) + 3, fc1_dims)
+        f1 = 1/ np.sqrt(self.fc1.weight.data.size()[0])
+        torch.nn.init.uniform_(self.fc1.weight.data, -f1, f1)
+        torch.nn.init.uniform_(self.fc1.bias.data, -f1, f1)
+        self.bn1 = nn.LayerNorm(fc1_dims)
+        
         self.fc2 = nn.Linear(fc1_dims, fc2_dims)
+        f2 = 1/ np.sqrt(self.fc2.weight.data.size()[0])
+        torch.nn.init.uniform_(self.fc2.weight.data, -f2, f2)
+        torch.nn.init.uniform_(self.fc2.bias.data, -f2, f2)
+        self.bn2 = nn.LayerNorm(fc2_dims)
+        
         self.q   = nn.Linear(fc2_dims, 1)
+        f3 = 0.003 #The paper recomended this
+        torch.nn.init.uniform_(self.q.weight.data, -f3, f3)
+        torch.nn.init.uniform_(self.q.bias.data, -f3, f3)
         
 
     def forward(self, state, action):
@@ -43,10 +57,10 @@ class CriticNetwork(nn.Module):
         state = self.pool(F.relu(self.conv2(state)))
 
         # Flatten the matrix to a vector, to be used in a fully-connected layer
-        action_value = torch.cat([torch.flatten(state, 1), action], 1)
-        action_value = F.relu(self.fc1(action_value))
-        action_value = F.relu(self.fc2(action_value))
-        q = self.q(action_value)
+        state_action_value = torch.cat([torch.flatten(state, 1), action], 1)
+        state_action_value = F.relu(self.fc1(state_action_value))
+        state_action_value = F.relu(self.fc2(state_action_value))
+        q = self.q(state_action_value)
 
         return q
 
@@ -99,9 +113,23 @@ class ActorNetwork(nn.Module):
         lin_input_size = self._cnn_size_check(lin_input_size, cnn_kernel, pool_kernel)
 
         # Linear network
+        # The weights and bias' are extracted from a uniform distribution
         self.fc1 = nn.Linear(lin_input_size.prod() * conv2_dim, fc1_dims)
+        f1 = 1/ np.sqrt(self.fc1.weight.data.size()[0])
+        torch.nn.init.uniform_(self.fc1.weight.data, -f1, f1)
+        torch.nn.init.uniform_(self.fc1.bias.data, -f1, f1)
+        self.bn1 = nn.LayerNorm(fc1_dims)
+        
         self.fc2 = nn.Linear(fc1_dims, fc2_dims)
+        f2 = 1/ np.sqrt(self.fc2.weight.data.size()[0])
+        torch.nn.init.uniform_(self.fc2.weight.data, -f2, f2)
+        torch.nn.init.uniform_(self.fc2.bias.data, -f2, f2)
+        self.bn2 = nn.LayerNorm(fc2_dims)
+        
         self.mu  = nn.Linear(fc2_dims, n_actions)
+        f3 = 0.003 #The paper recomended this
+        torch.nn.init.uniform_(self.mu.weight.data, -f3, f3)
+        torch.nn.init.uniform_(self.mu.bias.data, -f3, f3)
         
         
     def forward(self, state):
@@ -111,8 +139,8 @@ class ActorNetwork(nn.Module):
         
         # Flatten the matrix to a vector, to be used in a fully-connected layer
         prob = torch.flatten(state, 1)
-        prob = F.relu(self.fc1(prob))
-        prob = F.relu(self.fc2(prob))
+        prob = F.relu(self.bn1(self.fc1(prob)))
+        prob = F.relu(self.bn2(self.fc2(prob)))
         
         # Run tanh on the steering (-1, 1) and sigmoid on gas and breaking (0,1)
         mu = self.mu(prob)
