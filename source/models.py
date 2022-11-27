@@ -80,13 +80,13 @@ class CriticNetwork(nn.Module):
             print(f"ERROR\nThe size for the linear input is wrong: {img_size}")
             
     
-    def save_checkpoints(self, suffix = ''):
-        checkpoint_file = os.path.join(self.chkpt_dir,
+    def save_checkpoints(self, suffix = '', drive_dir = ''):
+        checkpoint_file = os.path.join(drive_dir + self.chkpt_dir,
                                        self.name + "_ddpg" + suffix)
         torch.save(self.state_dict(), checkpoint_file)
         
-    def load_checkpoints(self, suffix = ''):
-        checkpoint_file = os.path.join(self.chkpt_dir,
+    def load_checkpoints(self, suffix = '', drive_dir = ''):
+        checkpoint_file = os.path.join(drive_dir + self.chkpt_dir,
                                        self.name + "_ddpg" + suffix)
         self.load_state_dict(torch.load(checkpoint_file))
 
@@ -172,14 +172,14 @@ class ActorNetwork(nn.Module):
             print(f"ERROR\nThe size for the linear input is wrong: {img_size}")
     
     
-    def save_checkpoints(self, suffix = ''):
-        checkpoint_file = os.path.join(self.chkpt_dir,
+    def save_checkpoints(self, suffix = '', drive_dir = ''):
+        checkpoint_file = os.path.join(drive_dir + self.chkpt_dir,
                                        self.name + "_ddpg" + suffix)
         torch.save(self.state_dict(), checkpoint_file)
         
         
-    def load_checkpoints(self, suffix = ''):
-        checkpoint_file = os.path.join(self.chkpt_dir,
+    def load_checkpoints(self, suffix = '', drive_dir = ''):
+        checkpoint_file = os.path.join(drive_dir + self.chkpt_dir,
                                        self.name + "_ddpg" + suffix)
         self.load_state_dict(torch.load(checkpoint_file))
         

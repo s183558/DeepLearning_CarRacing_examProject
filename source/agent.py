@@ -165,17 +165,17 @@ class DDPGAgent:
         self.update_target_networks()
         
         
-    def save_models(self, suffix = ''):
+    def save_models(self, suffix = '', drive_dir = ''):
         print('\n# # # # #  Saving checkpoint  # # # # #\n')
-        self.critic.save_checkpoints(suffix)
-        self.actor.save_checkpoints(suffix)
-        self.target_critic.save_checkpoints(suffix)
-        self.target_actor.save_checkpoints(suffix)
+        self.critic.save_checkpoints(suffix, drive_dir)
+        self.actor.save_checkpoints(suffix, drive_dir)
+        self.target_critic.save_checkpoints(suffix, drive_dir)
+        self.target_actor.save_checkpoints(suffix, drive_dir)
     
-    def load_models(self,  suffix = ''):
+    def load_models(self,  suffix = '', drive_dir = ''):
         print('\n# # # # #  Loading checkpoint  # # # # #\n')
-        self.critic.load_checkpoints(suffix)
-        self.actor.load_checkpoints(suffix)
-        self.target_critic.load_checkpoints(suffix)
-        self.target_actor.load_checkpoints(suffix)
+        self.critic.load_checkpoints(suffix, drive_dir)
+        self.actor.load_checkpoints(suffix, drive_dir)
+        self.target_critic.load_checkpoints(suffix, drive_dir)
+        self.target_actor.load_checkpoints(suffix, drive_dir)
     
