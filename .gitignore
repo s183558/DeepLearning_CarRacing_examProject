@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+source/tmp_models/*
+source/plots/*
+
 # C extensions
 *.so
 
