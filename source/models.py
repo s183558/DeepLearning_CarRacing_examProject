@@ -9,11 +9,12 @@ class CriticNetwork(nn.Module):
     def __init__(self, name = 'critic', chkpt_dir = 'tmp_models',
                  state_size   = (96, 96),
                  input_size   = 1,
-                 conv1_dim    = 2,
-                 conv2_dim    = 4,
-                 cnn_kernel   = 5,
+                 conv1_dim    = 6,
+                 conv2_dim    = 12,
+                 cnn_kernel1  = 7,
+                 cnn_kernel2  = 4,
                  pool_kernel  = 2,
-                 fc1_dims     = 400,
+                 fc1_dims     = 216,
                  fc2_dims     = 300):
 
         super(CriticNetwork, self).__init__()
@@ -23,18 +24,19 @@ class CriticNetwork(nn.Module):
         self.name = name
         
         # The convolutional layers
-        self.conv1 = nn.Conv2d(input_size, conv1_dim, cnn_kernel)
-        self.pool = nn.MaxPool2d(pool_kernel, pool_kernel)
-        self.conv2 = nn.Conv2d(conv1_dim, conv2_dim, cnn_kernel)
+        self.conv1 = nn.Conv2d(input_size, conv1_dim, cnn_kernel1, stride=3)
+        self.pool = nn.MaxPool2d(pool_kernel)
+        self.conv2 = nn.Conv2d(conv1_dim, conv2_dim, cnn_kernel2)
 
         # Calculating the output size of the CNN-network
-        state_size = np.asarray(state_size)
-        lin_input_size = self._cnn_size_check(state_size, cnn_kernel, pool_kernel)
-        lin_input_size = self._cnn_size_check(lin_input_size, cnn_kernel, pool_kernel)
+        # state_size = np.asarray(state_size)
+        # lin_input_size = self._cnn_size_check(state_size, cnn_kernel, pool_kernel)
+        # lin_input_size = self._cnn_size_check(lin_input_size, cnn_kernel, pool_kernel)
 
         # Linear network
         # The weights and bias' are initiated with the Xavier uniform distribution
-        self.fc1 = nn.Linear((lin_input_size.prod() * conv2_dim) + 3, fc1_dims)
+        #self.fc1 = nn.Linear((lin_input_size.prod() * conv2_dim) + 3, fc1_dims)
+        self.fc1 = nn.Linear(432 + 3,fc1_dims)
         f1 = 1/ np.sqrt(self.fc1.weight.data.size()[0])
         torch.nn.init.uniform_(self.fc1.weight.data, -f1, f1)
         torch.nn.init.uniform_(self.fc1.bias.data, -f1, f1)
@@ -51,7 +53,6 @@ class CriticNetwork(nn.Module):
         torch.nn.init.uniform_(self.q.weight.data, -f3, f3)
         torch.nn.init.uniform_(self.q.bias.data, -f3, f3)
         
-
     def forward(self, state, action):
         # The first and 2nd convo + pooling layer
         state = self.pool(F.relu(self.conv1(state)))
@@ -59,10 +60,10 @@ class CriticNetwork(nn.Module):
 
         # Flatten the matrix to a vector, to be used in a fully-connected layer
         state_action_value = torch.cat([torch.flatten(state, 1), action], 1)
-        state_action_value = F.relu(self.fc1(state_action_value))
-        state_action_value = F.relu(self.fc2(state_action_value))
+        state_action_value = F.relu(self.bn1(self.fc1(state_action_value)))
+        state_action_value = F.relu(self.bn2(self.fc2(state_action_value)))
         q = self.q(state_action_value)
-
+        
         return q
 
     def _cnn_size_check(self, img_size, cnn_kernel_size, pool_kernel_size):
@@ -94,11 +95,12 @@ class ActorNetwork(nn.Module):
     def __init__(self, name = 'actor', chkpt_dir = 'tmp_models',
                  state_size   = (96, 96),
                  input_size   = 1,
-                 conv1_dim    = 2,
-                 conv2_dim    = 4,
-                 cnn_kernel   = 5,
+                 conv1_dim    = 6,
+                 conv2_dim    = 12,
+                 cnn_kernel1  = 7,
+                 cnn_kernel2  = 4,
                  pool_kernel  = 2,
-                 fc1_dims     = 400,
+                 fc1_dims     = 216,
                  fc2_dims     = 300,
                  n_actions    = 3):
 
@@ -109,18 +111,19 @@ class ActorNetwork(nn.Module):
         self.name = name
         
         # The convolutional layers
-        self.conv1 = nn.Conv2d(input_size, conv1_dim, cnn_kernel)
-        self.pool = nn.MaxPool2d(pool_kernel, pool_kernel)
-        self.conv2 = nn.Conv2d(conv1_dim, conv2_dim, cnn_kernel)
+        self.conv1 = nn.Conv2d(input_size, conv1_dim, cnn_kernel1, stride=3)
+        self.pool = nn.MaxPool2d(pool_kernel)
+        self.conv2 = nn.Conv2d(conv1_dim, conv2_dim, cnn_kernel2)
 
         # Calculating the output size of the CNN-network
-        state_size = np.asarray(state_size)
-        lin_input_size = self._cnn_size_check(state_size, cnn_kernel, pool_kernel)
-        lin_input_size = self._cnn_size_check(lin_input_size, cnn_kernel, pool_kernel)
+        # state_size = np.asarray(state_size)
+        # lin_input_size = self._cnn_size_check(state_size, cnn_kernel, pool_kernel)
+        # lin_input_size = self._cnn_size_check(lin_input_size, cnn_kernel, pool_kernel)
 
         # Linear network
         # The weights and bias' are initiated with the Xavier uniform distribution
-        self.fc1 = nn.Linear(lin_input_size.prod() * conv2_dim, fc1_dims)
+        #self.fc1 = nn.Linear((lin_input_size.prod() * conv2_dim), fc1_dims)
+        self.fc1 = nn.Linear(432 ,fc1_dims)
         f1 = 1/ np.sqrt(self.fc1.weight.data.size()[0])
         torch.nn.init.uniform_(self.fc1.weight.data, -f1, f1)
         torch.nn.init.uniform_(self.fc1.bias.data, -f1, f1)
