@@ -92,5 +92,5 @@ for e in range(episodes):
 # Save the final paramters of the model
 agent.save_models('final')
 
-x = [i + 1 for i in range(episodes)]
+x = [i + 1 for i in range(rewards)]
 plot_learning_curve(x, rewards, figure_file)
