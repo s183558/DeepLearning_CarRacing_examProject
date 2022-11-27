@@ -1,3 +1,5 @@
+drive_path = ''
+
 import numpy as np
 import gym
 from gym import wrappers
@@ -85,12 +87,12 @@ for e in range(episodes):
     
     if avg_score > best_score:
         best_score = avg_score
-        agent.save_models()
+        agent.save_models(drive_dir = drive_path)
     
     print(f'Episode {e+1}, score: {score:.1f}, avg_score: {avg_score:.1f}')
 
 # Save the final paramters of the model
-agent.save_models('final')
+agent.save_models(suffix = 'final', drive_dir = drive_path)
 
-x = [i + 1 for i in range(rewards)]
+x = [i + 1 for i in range(len(rewards))]
 plot_learning_curve(x, rewards, figure_file)
