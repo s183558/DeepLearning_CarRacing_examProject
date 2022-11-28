@@ -60,7 +60,15 @@ class DDPGAgent:
         reward = np.array([reward])
         done   = np.array([done])
         
-        self.small_memory.push(state, action, reward, state_next, done)
+        # Push the experiences to the buffer
+        experience = (state, action, reward, state_next, done)
+        self.small_memory.push(experience)
+        
+    def move_small_buffer_to_big(self):
+        # Move small buffer to big, by popping each element of the small buffer
+        # into the big one
+        while len(self.small_memory) != 0:
+            self.big_memory.push(self.small_memory.buffer.pop())
         
         
     def getAction(self, state, evaluate = False):
