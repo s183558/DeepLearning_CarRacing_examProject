@@ -13,10 +13,11 @@ from utils import plot_learning_curve
 gamma = 0.99
 tau = 0.005
 lr_mu, lr_Q = 0.0001, 0.0002
-episodes = 10
-batch_size = 32
-step_size = batch_size * 4
+episodes = 200
+batch_size = 500
+step_size = 1000
 verbose_freq = 50
+
 
 figure_file = 'plots/CarRacing_rewards.png'
 
@@ -62,27 +63,38 @@ for e in range(episodes):
         # Throw all our variables in the memory
         agent.remember(state, action, reward, state_next, np.array([done, done2]).any())
         
+
         # When we have enough state-action pairs, we can update our online nets
-        if len(agent.memory) > batch_size:
-            agent.update()
+        if len(agent.small_memory) == batch_size:
+            print(f'Updating the networks...')
+            # Update network with small buffer for recency
+            agent.update(recency_buffer = True)
+            
+            # Move small buffer to big, and reset small buffer
+            agent.move_small_buffer_to_big()
+            
+            # Update network with big buffer
+            agent.update(recency_buffer = False)
+            
 
         # The next state, is now our current state.
         state = state_next
         
-        # if the environment terminates before the step_size, we break
-        if np.array([done, done2]).any():
-            print(f'Terminated at:\nEpisode: {e+1}, reward: {score:.1f}, avg_reward: {np.mean(rewards[-10:]):.1f}')
-            break
-        
         # How far into the episode we are 
         if (step+1) % verbose_freq == 0: print(f'Step {step+1} done!')
-            
+        
+        # if the environment terminates before the step_size, we break
+        if np.array([done, done2]).any():
+            print(f'## ## Terminated at:')
+            break
+        
     # After each episode we store the score        
     rewards.append(score)
     
-    avg_score = np.mean(rewards[-100:])
     # The avg score of the last 10 episodes
     avg_score = np.mean(rewards[-10:])
+    
+    print(f'Episode {e+1}, score: {score:.1f}, avg_score: {avg_score:.1f}')
     
     # Save the model, every 100th episode
     if (e+1) % 100 == 0: agent.save_models(suffix = f'_episode_{e+1}',
@@ -93,7 +105,7 @@ for e in range(episodes):
         best_score = avg_score
         agent.save_models(drive_dir = drive_path)
     
-    print(f'Episode {e+1}, score: {score:.1f}, avg_score: {avg_score:.1f}')
+    
 
 # Save the final paramters of the model
 agent.save_models(suffix = '_final', drive_dir = drive_path)
