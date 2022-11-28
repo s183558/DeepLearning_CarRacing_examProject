@@ -24,11 +24,8 @@ figure_file = 'plots/CarRacing_rewards.png'
 #     Environment    #
 ######################
 env = gym.make('CarRacing-v2', new_step_api=True) # Create environment
-#env = Recorder(env, "./video", auto_release = False) # To display environment in Colab
 env.reset(options={"randomize": False}, seed = 42) # Reset environment
 env = wrappers.GrayScaleObservation(env, keep_dim = True)
-
-obs_shape = env.observation_space.shape
 
 # Agent
 agent = DDPGAgent(gamma = gamma, tau = tau,lr_mu = lr_mu,
@@ -55,13 +52,14 @@ for e in range(episodes):
         state_next, reward, done, done2, _ = env.step(action)
         
         # If the agent gives some gas it get a bonus reward
+        bonus_reward = 0
         if action[1] > 0.1:
-            bonus_reward = abs(reward *0.5)
+            bonus_reward = 0.5 + action[1] #abs(reward *0.5)
             
         # Add the reward from the step to our score
         score += reward + bonus_reward
         
-        # Throm all our variables in the memory
+        # Throw all our variables in the memory
         agent.remember(state, action, reward, state_next, np.array([done, done2]).any())
         
         # When we have enough state-action pairs, we can update our online nets
@@ -73,7 +71,7 @@ for e in range(episodes):
         
         # if the environment terminates before the step_size, we break
         if np.array([done, done2]).any():
-            print(f'Terminated at:\nEpisode: {e+1}, reward: {score:.1f}, avg_reward: {np.mean(rewards[-100:]):.1f}')
+            print(f'Terminated at:\nEpisode: {e+1}, reward: {score:.1f}, avg_reward: {np.mean(rewards[-10:]):.1f}')
             break
         
         # How far into the episode we are 
@@ -82,9 +80,15 @@ for e in range(episodes):
     # After each episode we store the score        
     rewards.append(score)
     
-    # The avg score of the last 100 episodes
     avg_score = np.mean(rewards[-100:])
+    # The avg score of the last 10 episodes
+    avg_score = np.mean(rewards[-10:])
     
+    # Save the model, every 100th episode
+    if (e+1) % 100 == 0: agent.save_models(suffix = f'_episode_{e+1}',
+                                           drive_dir = drive_path)
+    
+    # Save the best model
     if avg_score > best_score:
         best_score = avg_score
         agent.save_models(drive_dir = drive_path)
@@ -92,7 +96,7 @@ for e in range(episodes):
     print(f'Episode {e+1}, score: {score:.1f}, avg_score: {avg_score:.1f}')
 
 # Save the final paramters of the model
-agent.save_models(suffix = 'final', drive_dir = drive_path)
+agent.save_models(suffix = '_final', drive_dir = drive_path)
 
 x = [i + 1 for i in range(len(rewards))]
 plot_learning_curve(x, rewards, figure_file)
