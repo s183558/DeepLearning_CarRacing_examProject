@@ -7,8 +7,8 @@ from models import CriticNetwork, ActorNetwork
 from utils import Memory
 
 class DDPGAgent:
-    def __init__(self, lr_mu, lr_Q, gamma, tau, env, batch_size = 32,
-                 noise_std  = [0.1, 0.05, 0.05]):
+    def __init__(self, lr_mu, lr_Q, gamma, tau, env, batch_size = 500,
+                 noise_std  = [0.1, 0.05, 0.05], chkpt_dir = 'tmp_models'):
         
         # Choose the device to run on
         if torch.cuda.is_available():
@@ -19,10 +19,11 @@ class DDPGAgent:
             self.device = torch.device('cpu')
         
         # Parameters
-        self.max_memory_size = 256
-        self.gamma           = gamma
-        self.tau             = tau
-        self.batch_size      = batch_size
+        self.max_big_memory_size   = 10**4
+        self.max_small_memory_size = batch_size
+        self.gamma                 = gamma
+        self.tau                   = tau
+        self.batch_size            = batch_size
         
         self.min_action_val = torch.FloatTensor(env.action_space.low).to(self.device)
         self.max_action_val = torch.FloatTensor(env.action_space.high).to(self.device)
@@ -30,16 +31,18 @@ class DDPGAgent:
         
         
         # Randomly initialize the critic (Q) and actor (mu) network
-        self.critic        = CriticNetwork(name='Critic').to(self.device)
-        self.actor         = ActorNetwork(name ='Actor').to(self.device)
-        self.target_critic = CriticNetwork(name='TargetCritic').to(self.device)
-        self.target_actor  = ActorNetwork(name ='TargetActor').to(self.device)
+        self.critic        = CriticNetwork(name='Critic', chkpt_dir=chkpt_dir).to(self.device)
+        self.actor         = ActorNetwork(name ='Actor', chkpt_dir=chkpt_dir).to(self.device)
+        self.target_critic = CriticNetwork(name='TargetCritic', chkpt_dir=chkpt_dir).to(self.device)
+        self.target_actor  = ActorNetwork(name ='TargetActor', chkpt_dir=chkpt_dir).to(self.device)
         
         # Set the target networks to have the save parameters as their online version
         self.update_target_networks(tau = 1)
 
-        # Initialize the replay buffer
-        self.memory = Memory(self.max_memory_size)
+        # Initialize the replay buffers. Reason for the smaller is to get 
+        # some recency bias
+        self.big_memory   = Memory(self.max_big_memory_size)
+        self.small_memory = Memory(self.max_small_memory_size)
         
         # Define the loss function and the optimizer
         self.critic_criterion = nn.MSELoss()
@@ -47,8 +50,6 @@ class DDPGAgent:
         self.actor_optimizer  = optim.Adam(self.actor.parameters(), lr=lr_mu)
         
         
-        
-    
     def remember(self, state, action, reward, state_next, done):
         # Change the state dimensions to be correct, aka.:(channel, height, width)
         state = np.transpose(state, (2, 0, 1))
@@ -59,7 +60,7 @@ class DDPGAgent:
         reward = np.array([reward])
         done   = np.array([done])
         
-        self.memory.push(state, action, reward, state_next, done)
+        self.small_memory.push(state, action, reward, state_next, done)
         
         
     def getAction(self, state, evaluate = False):
@@ -109,9 +110,12 @@ class DDPGAgent:
         self.target_critic.load_state_dict(critic_params)
         
 
-    def update(self):
+    def update(self, recency_buffer : bool):
         # Get a "batch_size" number of samples from our memory buffer
-        state, action, reward, state_next, done = self.memory.sample(self.batch_size)
+        if recency_buffer:
+            state, action, reward, state_next, done = self.small_memory.sample(self.batch_size)
+        else:
+            state, action, reward, state_next, done = self.big_memory.sample(self.batch_size)
         
         state      = torch.FloatTensor(state).to(self.device)
         action     = torch.FloatTensor(action).to(self.device)
@@ -158,7 +162,7 @@ class DDPGAgent:
         # Backpropegate the loss through the network
         actor_loss.backward()
         self.actor_optimizer.step()
-        print(f"after optimizer step: [min: { min(self.actor.fc1.bias.grad):.2E}, max: {max(self.actor.fc1.bias.grad):.2E}, avg: {torch.mean(self.actor.fc1.bias.grad):.2E}]")   
+        #print(f"after optimizer step: [min: { min(self.actor.fc1.bias.grad):.2E}, max: {max(self.actor.fc1.bias.grad):.2E}, avg: {torch.mean(self.actor.fc1.bias.grad):.2E}]")   
         # print(f"\nAfter optimizer step: actor_loss = {actor_loss.cpu().detach().numpy()}\nBias_grad in fc1:\n {self.actor.fc1.bias.grad}")
         
         # Lastly we update the target networks
