@@ -10,9 +10,8 @@ class Memory:
         # Initiate a que for our buffer to be stored in
         self.buffer = deque(maxlen=max_size)
 
-    def push(self, state, action, reward, next_state, done):
+    def push(self, experience):
         # Store all the values in the buffer
-        experience = (state, action, reward, next_state, done)
         self.buffer.append(experience)
 
     def sample(self, batch_size):
