@@ -157,6 +157,9 @@ class ActorNetwork(nn.Module):
         mu = torch.cat([mu, torch.relu(-mu[:, 1:])],1)
         mu[:, 1:] = torch.relu(mu[:, 1:])
         
+        # Make the steering half as big, as the steering is really hard
+        mu[:,0] /= 2
+        
         return mu
 
     def _cnn_size_check(self, img_size, cnn_kernel_size, pool_kernel_size):
