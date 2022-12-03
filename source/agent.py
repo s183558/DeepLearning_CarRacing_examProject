@@ -8,7 +8,7 @@ from utils import Memory
 
 class DDPGAgent:
     def __init__(self, lr_mu, lr_Q, gamma, tau, env, batch_size = 500,
-                 noise_std  = [0.1, 0.05, 0.05], chkpt_dir = 'tmp_models'):
+                 noise_std  = [0.1, 0.1, 0.1], chkpt_dir = 'tmp_models'):
         
         # Choose the device to run on
         if torch.cuda.is_available():
@@ -77,12 +77,13 @@ class DDPGAgent:
         # Get an action from the actor network of this specific state
         state   = torch.FloatTensor(state).to(self.device)
         state   = torch.permute(state[None, :], (0, 3, 1, 2))
-        actions = self.actor(state)
+        with torch.no_grad():
+            actions = self.actor.forward(state)
         
         # If we are still training add noise, to help with exploration
         if not evaluate:
             actions += torch.normal(mean = 0.0,
-                                    std  = self.noise_std).to(self.device)
+                                    std  = self.noise_std * (actions != 0)).to(self.device)
             
             # Clip the action values to not exceed the boundaries
             actions = torch.clamp(actions, min = self.min_action_val,
@@ -139,9 +140,11 @@ class DDPGAgent:
         
         # Q loss
         # Calculate y_i (Q-val/(total future reward) for the target net)
-        target_actions    = self.target_actor.forward(state_next)
-        target_critic_val = self.target_critic.forward(state_next, target_actions)
-        y_i = reward + self.gamma * target_critic_val * (1-done)
+        with torch.no_grad():
+          target_actions    = self.target_actor.forward(state_next)
+          target_critic_val = self.target_critic.forward(state_next, target_actions)
+          y_i = reward + self.gamma * target_critic_val * (1-done)
+        #assert not y_i.requires_grad
         
         # Set the critic network back into training mode
         self.critic.train()
@@ -175,6 +178,10 @@ class DDPGAgent:
         
         # Lastly we update the target networks
         self.update_target_networks()
+
+        
+        return (critic_loss, actor_loss, critic_val, y_i)
+        
         
         
     def save_models(self, suffix = '', drive_dir = ''):
