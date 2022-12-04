@@ -102,7 +102,7 @@ class ActorNetwork(nn.Module):
                  pool_kernel  = 2,
                  fc1_dims     = 216,
                  fc2_dims     = 300,
-                 n_actions    = 2):
+                 n_actions    = 1):
 
         super(ActorNetwork, self).__init__()
         
@@ -152,13 +152,14 @@ class ActorNetwork(nn.Module):
         prob = F.relu(self.bn2(self.fc2(prob)))
         
         # Run tanh on the action (-1, 1) split the acceleration into gas and breaking
-        mu = torch.tanh(self.mu(prob))
+        mu = torch.tanh(self.mu(prob))/4
         
-        mu = torch.cat([mu, torch.relu(-mu[:, 1:])],1)
-        mu[:, 1:] = torch.relu(mu[:, 1:])
+        
+        #mu = torch.cat([mu, torch.relu(-mu[:, 1:])],1)
+        #mu[:, 1:] = torch.relu(mu[:, 1:])
         
         # Make the steering half as big, as the steering is really hard
-        mu[:,0] /= 2
+        #mu[:,0] /= 2
         
         return mu
 

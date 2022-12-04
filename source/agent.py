@@ -82,12 +82,14 @@ class DDPGAgent:
         
         # If we are still training add noise, to help with exploration
         if not evaluate:
-            actions += torch.normal(mean = 0.0,
-                                    std  = self.noise_std * (actions != 0)).to(self.device)
+            actions += torch.normal(mean = 0.0, std  = 0.1, size = actions.shape).to(self.device)
             
-            # Clip the action values to not exceed the boundaries
-            actions = torch.clamp(actions, min = self.min_action_val,
-                                           max = self.max_action_val)
+            # actions += torch.normal(mean = 0.0,
+            #                         std  = self.noise_std * (actions != 0)).to(self.device)
+            
+            # # Clip the action values to not exceed the boundaries
+            # actions = torch.clamp(actions, min = self.min_action_val,
+            #                                max = self.max_action_val)
         
         self.actor.train()
         
@@ -142,6 +144,7 @@ class DDPGAgent:
         # Calculate y_i (Q-val/(total future reward) for the target net)
         with torch.no_grad():
           target_actions    = self.target_actor.forward(state_next)
+          target_actions    = torch.cat([target_actions, target_actions*0+0.1, target_actions*0],1)
           target_critic_val = self.target_critic.forward(state_next, target_actions)
           y_i = reward + self.gamma * target_critic_val * (1-done)
         #assert not y_i.requires_grad
@@ -166,6 +169,7 @@ class DDPGAgent:
         self.critic.eval()
         self.actor_optimizer.zero_grad()
         mu = self.actor.forward(state)
+        mu = torch.cat([mu, mu*0+0.1, mu*0],1)
         self.actor.train()
         actor_loss = -self.critic.forward(state, mu)
         actor_loss = torch.mean(actor_loss)

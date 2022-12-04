@@ -80,6 +80,8 @@ for e in range(episodes):
         # Sample an action from our actor network
         action = agent.getAction(state)[0]
        
+        # Add a constant speed and no brake
+        action = np.append(action, [0.05, 0])
         
         # Take the action in our current state
         state_next, reward, done, done2, _ = env.step(action)
