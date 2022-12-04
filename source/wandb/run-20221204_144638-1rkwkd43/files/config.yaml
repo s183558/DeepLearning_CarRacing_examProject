@@ -1,0 +1,52 @@
+wandb_version: 1
+
+_wandb:
+  desc: null
+  value:
+    cli_version: 0.13.5
+    framework: torch
+    is_jupyter_run: true
+    is_kaggle_kernel: false
+    m:
+    - 1: Loss_step
+      6:
+      - 3
+    - 1: critic_loss_short
+      5: 1
+      6:
+      - 1
+      - 3
+    - 1: critic_loss_long
+      5: 1
+      6:
+      - 1
+      - 3
+    - 1: actor_loss_short
+      5: 1
+      6:
+      - 1
+      - 3
+    - 1: actor_loss_long
+      5: 1
+      6:
+      - 1
+      - 3
+    python_version: 3.9.13
+    start_time: 1670161604.515687
+    t:
+      1:
+      - 1
+      - 55
+      2:
+      - 1
+      - 55
+      3:
+      - 2
+      - 7
+      - 23
+      4: 3.9.13
+      5: 0.13.5
+      8:
+      - 1
+      - 3
+      - 5
