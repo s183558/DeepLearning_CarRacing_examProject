@@ -156,9 +156,10 @@ class DDPGAgent:
         # We do MSE to find the critic loss
         self.critic_optimizer.zero_grad()
         critic_val  = self.critic.forward(state, action)
-        critic_loss = self.critic_criterion(y_i, critic_val)
+        critic_loss = self.critic_criterion(critic_val, y_i)
         
         # Backpropegate the loss through the network
+        #self.critic_optimizer.zero_grad()
         critic_loss.backward()
         self.critic_optimizer.step()
         
@@ -177,8 +178,7 @@ class DDPGAgent:
         # Backpropegate the loss through the network
         actor_loss.backward()
         self.actor_optimizer.step()
-        #print(f"after optimizer step: [min: { min(self.actor.fc1.bias.grad):.2E}, max: {max(self.actor.fc1.bias.grad):.2E}, avg: {torch.mean(self.actor.fc1.bias.grad):.2E}]")   
-        # print(f"\nAfter optimizer step: actor_loss = {actor_loss.cpu().detach().numpy()}\nBias_grad in fc1:\n {self.actor.fc1.bias.grad}")
+
         
         # Lastly we update the target networks
         self.update_target_networks()
