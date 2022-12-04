@@ -22,10 +22,20 @@ verbose_freq = 50
 
 figure_file = 'plots/CarRacing_rewards.png'
 
-do_wandb = False
+do_wandb = True
 
 if do_wandb:
-    wandb_client = wandb.init(project="DL_CarRacing2")
+    # Initialize our WandB client
+    wandb_client = wandb.init(project="DL_CarRacing_1D")
+    
+    # define our custom x axis metric
+    wandb.define_metric("Loss_step")
+    
+    # define which metrics will be plotted against it
+    wandb.define_metric("critic_loss_short", step_metric="Loss_step")
+    wandb.define_metric("critic_loss_long", step_metric="Loss_step")
+    wandb.define_metric("actor_loss_short", step_metric="Loss_step")
+    wandb.define_metric("actor_loss_long", step_metric="Loss_step")
 
 ######################
 #     Environment    #
@@ -55,8 +65,7 @@ no_reward_counter = 0
 actor_loss = [[],[]]
 critic_loss = [[],[]]
 metrics = []
-metric_counter_step = 0
-metric_counter_model = 0
+
 
 #######################
 #      Main loop      #
@@ -126,10 +135,14 @@ for e in range(episodes):
                     wandb_client.log(metrics[i])
                 metrics = []
             
-            critic_loss[0].append(smallB_metrics[0])
-            critic_loss[1].append(bigB_metrics[0])
-            actor_loss[0].append(smallB_metrics[1])
-            actor_loss[1].append(bigB_metrics[1])
+                wandb_client.log({'critic_loss_short' : smallB_metrics[0]})
+                wandb_client.log({'critic_loss_long'  : bigB_metrics[0]})
+                wandb_client.log({'actor_loss_short'  : smallB_metrics[1]})
+                wandb_client.log({'actor_loss_long'   : bigB_metrics[1]})
+            critic_loss[0].append(float(smallB_metrics[0]))
+            critic_loss[1].append(float(bigB_metrics[0]))
+            actor_loss[0].append(float(smallB_metrics[1]))
+            actor_loss[1].append(float(bigB_metrics[1]))
             
             
             
@@ -173,22 +186,21 @@ for e in range(episodes):
         best_score = avg_score
         agent.save_models(drive_dir = drive_path)
 
-if do_wandb:
-    wandb_client.log(
-            {"actor_loss" : wandb.plot.line_series(
-                           xs = range(len(actor_loss)), 
-                           ys = actor_loss,
-                           keys = ["Short term", "long term"],
-                           title = "Actor loss",
-                           xname = "Step")})
-    wandb_client.log(
-            {"critic_loss" : wandb.plot.line_series(
-                           xs = range(len(critic_loss)), 
-                           ys = critic_loss,
-                           keys = ["Short term", "long term"],
-                           title = "Critic loss",
-                           xname = "Step")})
-    wandb_client.finish()
+if 0:
+    loss_plots = {"actor_loss" : wandb.plot.line_series(
+                       xs = range(len(actor_loss[0])), 
+                       ys = actor_loss,
+                       keys = ["Short term", "long term"],
+                       title = "Actor loss",
+                       xname = "Step"),
+                  "critic_loss" : wandb.plot.line_series(
+                       xs = range(len(critic_loss[0])), 
+                       ys = critic_loss,
+                       keys = ["Short term", "long term"],
+                       title = "Actor loss",
+                       xname = "Step")}
+    wandb_client.log(loss_plots)
+wandb_client.finish()
 
 # Save the final paramters of the model
 agent.save_models(suffix = '_final', drive_dir = drive_path)
