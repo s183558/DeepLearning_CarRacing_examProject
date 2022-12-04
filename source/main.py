@@ -14,8 +14,8 @@ from utils import plot_learning_curve
 ######################
 gamma = 0.99
 tau = 0.005
-lr_mu, lr_Q = 0.0001, 0.0002
-episodes = 10
+lr_mu, lr_Q = 0.00001, 0.000005
+episodes = 100
 batch_size = 500
 step_size = 1000
 verbose_freq = 50
