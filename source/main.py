@@ -14,7 +14,7 @@ from utils import plot_learning_curve
 ######################
 gamma = 0.99
 tau = 0.005
-lr_mu, lr_Q = 0.00001, 0.000005
+lr_mu, lr_Q = 1e-5, 6e-6
 episodes = 100
 batch_size = 500
 step_size = 1000
@@ -88,6 +88,16 @@ for e in range(episodes):
         
         env.render()
         
+        # If we dont get a positive reward in 200 steps, we reset
+        
+        if reward < 0:
+            no_reward_counter += 1
+            if no_reward_counter > 200:
+                print('No positive reward in 200 steps; RESET')
+                done = True
+        else:
+            no_reward_counter = 0
+        
         # If the agent gives some gas it get a bonus reward
         bonus_reward = 0
         if action[1] > 0.1:
@@ -160,15 +170,7 @@ for e in range(episodes):
             print('## ## Terminated at:')
             break
         
-        # If we dont get a positive reward in 200 steps, we reset
         
-        if reward < 0:
-            no_reward_counter += 1
-            if no_reward_counter > 200:
-                print('No positive reward in 200 steps; RESET')
-                break
-        else:
-            no_reward_counter = 0
             
         
     # After each episode we store the score        

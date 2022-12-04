@@ -1,0 +1,50 @@
+{
+    "os": "Windows-10-10.0.19045-SP0",
+    "python": "3.9.13",
+    "heartbeatAt": "2022-12-04T14:34:23.001450",
+    "startedAt": "2022-12-04T14:34:22.507015",
+    "docker": null,
+    "cuda": null,
+    "args": null,
+    "state": "running",
+    "program": "c:\\users\\frederik\\onedrive - danmarks tekniske universitet\\msc 3. semester\\deep learning - 02456\\final_project\\deeplearning_carracing_examproject\\source\\main.py",
+    "codePath": "source\\main.py",
+    "git": {
+        "remote": "https://github.com/s183558/DeepLearning_CarRacing_examProject.git",
+        "commit": "669836c8ae61592940415da7ef3f8d4c1c132909"
+    },
+    "email": "s183558@student.dtu.dk",
+    "root": "C:/Users/Frederik/OneDrive - Danmarks Tekniske Universitet/MSc 3. semester/Deep learning - 02456/final_project/DeepLearning_CarRacing_examProject",
+    "host": "DESKTOP-2VAJ001",
+    "username": "Frederik",
+    "executable": "C:\\Users\\Frederik\\anaconda3\\envs\\Deep_learning_laptop\\python.exe",
+    "cpu_count": 8,
+    "cpu_count_logical": 16,
+    "cpu_freq": {
+        "current": 3600.0,
+        "min": 0.0,
+        "max": 3600.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 3600.0,
+            "min": 0.0,
+            "max": 3600.0
+        }
+    ],
+    "disk": {
+        "total": 418.1761474609375,
+        "used": 344.0288314819336
+    },
+    "gpu": "NVIDIA GeForce RTX 3070",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA GeForce RTX 3070",
+            "memory_total": 8589934592
+        }
+    ],
+    "memory": {
+        "total": 15.95180892944336
+    }
+}
