@@ -108,7 +108,7 @@ for e in range(episodes):
                            })
 
         # Add the reward from the step to our score
-        reward += bonus_reward
+        #reward += bonus_reward
         score += reward
         
         # Throw all our variables in the memory
@@ -164,7 +164,7 @@ for e in range(episodes):
         
         if reward < 0:
             no_reward_counter += 1
-            if no_reward_counter > 400:
+            if no_reward_counter > 200:
                 print('No positive reward in 200 steps; RESET')
                 break
         else:

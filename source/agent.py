@@ -8,7 +8,7 @@ from utils import Memory
 
 class DDPGAgent:
     def __init__(self, lr_mu, lr_Q, gamma, tau, env, batch_size = 500,
-                 noise_std  = [0.1, 0.1, 0.1], chkpt_dir = 'tmp_models'):
+                 noise_std  = [0.01, 0.1, 0.1], chkpt_dir = 'tmp_models'):
         
         # Choose the device to run on
         if torch.cuda.is_available():
