@@ -56,6 +56,26 @@ def plot_learning_curve(x, scores, figure_file):
 
 
 
+def preprocess(img):
+    img = img.copy()
+    # The 2 parts of the img
+    game_img = img[:84, :, :]
+    info_bar = img[84:, :, :]
+
+    # Unify grass color
+    game_img[(160 < game_img) * (game_img <= 190)] = 160
+    
+    # Unify the track color
+    game_img[((100 <= game_img) * (game_img <= 154))] = 102
+
+    # Make car one color
+    game_img[(40 <= game_img) * (game_img <= 98)] = 50
+    
+    # Remove number of info bar, and replace it with the speed bar
+    info_bar[3:10, 1:12, :] = info_bar[3:10, 12:13, :]
+
+    return img
+
 def info_about_env(env):
     # The action space 
     a = env.action_space
