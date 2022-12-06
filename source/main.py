@@ -4,10 +4,11 @@ import numpy as np
 import gym
 from gym import wrappers
 import wandb
+import matplotlib.pyplot as plt
 #wandb.login()
 
 from agent import DDPGAgent
-from utils import plot_learning_curve
+from utils import plot_learning_curve, preprocess
 
 ######################
 #     Parameters     #
@@ -15,9 +16,9 @@ from utils import plot_learning_curve
 gamma = 0.99
 tau = 0.005
 lr_mu, lr_Q = 1e-5, 6e-6
-episodes = 100
-batch_size = 500
-step_size = 1000
+episodes = 2000
+batch_size = 100
+step_size = 10000
 verbose_freq = 50
 
 figure_file = 'plots/CarRacing_rewards.png'
@@ -57,13 +58,11 @@ print(f'Online {agent.actor}')
 #######################
 # Training parameters #
 #######################
-rewards = []
+rewards = [0]
 best_score = 0
 no_reward_counter = 0
 
 # Wandb variables
-actor_loss = [[],[]]
-critic_loss = [[],[]]
 metrics = []
 
 
@@ -79,9 +78,10 @@ for e in range(episodes):
     for step in range(step_size):
         # Sample an action from our actor network
         action = agent.getAction(state)[0]
-       
+              
         # Add a constant speed and no brake
-        action = np.append(action, [0.05, 0])
+        #action = np.append(action, [0.05, 0])
+        
         
         # Take the action in our current state
         state_next, reward, done, done2, _ = env.step(action)
@@ -92,24 +92,23 @@ for e in range(episodes):
         
         if reward < 0:
             no_reward_counter += 1
-            if no_reward_counter > 200:
-                print('No positive reward in 200 steps; RESET')
+            if no_reward_counter > 100:
+                print('No positive reward in 100 steps; RESET')
                 done = True
         else:
             no_reward_counter = 0
         
-        # If the agent gives some gas it get a bonus reward
-        bonus_reward = 0
-        if action[1] > 0.1:
-            bonus_reward = 0.05 #0.5 + action[1] #abs(reward *0.5)
         
         # Position of the car
         x = env.car.hull.position[0]
         y = env.car.hull.position[1]
+        
+        # Add the reward from the step to our score
+        score += reward
 
         if do_wandb:
             metrics.append({"reward"   : reward,
-                            "bonus_reward" : bonus_reward,
+                            "Score"    : rewards[-1],
                             "Steering" : action[0],
                             "Gas"      : action[1],
                             "Breaking" : action[2],
@@ -117,12 +116,15 @@ for e in range(episodes):
                             "y pos"    : y,
                            })
 
-        # Add the reward from the step to our score
-        #reward += bonus_reward
-        score += reward
+        
         
         # Throw all our variables in the memory
-        agent.remember(state, action, reward, state_next, np.array([done, done2]).any())
+        train_action      = action*4
+        train_state       = preprocess(state)
+        traing_state_next = preprocess(state_next)
+        # plt.imshow(train_state, cmap = 'gray')
+        # plt.show()
+        agent.remember(train_state, train_action, reward, traing_state_next, np.array([done, done2]).any())
         
 
         # When we have enough state-action pairs, we can update our online nets
@@ -151,12 +153,6 @@ for e in range(episodes):
                 wandb_client.log({'critic_loss_long'  : bigB_metrics[0]})
                 wandb_client.log({'actor_loss_short'  : smallB_metrics[1]})
                 wandb_client.log({'actor_loss_long'   : bigB_metrics[1]})
-            critic_loss[0].append(float(smallB_metrics[0]))
-            critic_loss[1].append(float(bigB_metrics[0]))
-            actor_loss[0].append(float(smallB_metrics[1]))
-            actor_loss[1].append(float(bigB_metrics[1]))
-            
-            
             
 
         # The next state, is now our current state.
@@ -170,8 +166,6 @@ for e in range(episodes):
             print('## ## Terminated at:')
             break
         
-        
-            
         
     # After each episode we store the score        
     rewards.append(score)
@@ -190,20 +184,7 @@ for e in range(episodes):
         best_score = avg_score
         agent.save_models(drive_dir = drive_path)
 
-if 0:
-    loss_plots = {"actor_loss" : wandb.plot.line_series(
-                       xs = range(len(actor_loss[0])), 
-                       ys = actor_loss,
-                       keys = ["Short term", "long term"],
-                       title = "Actor loss",
-                       xname = "Step"),
-                  "critic_loss" : wandb.plot.line_series(
-                       xs = range(len(critic_loss[0])), 
-                       ys = critic_loss,
-                       keys = ["Short term", "long term"],
-                       title = "Actor loss",
-                       xname = "Step")}
-    wandb_client.log(loss_plots)
+
 wandb_client.finish()
 
 # Save the final paramters of the model
