@@ -8,7 +8,9 @@ from utils import Memory
 
 class DDPGAgent:
     def __init__(self, lr_mu, lr_Q, gamma, tau, env, batch_size = 500,
-                 noise_std  = [0.01, 0.01, 0.01], chkpt_dir = 'tmp_models'):
+                 noise_std  = [0.01, 0.01, 0.01],
+                 noise_mean  = [0.0, 0.005, -0.05], 
+                 chkpt_dir = 'tmp_models'):
         
         # Choose the device to run on
         if torch.cuda.is_available():
@@ -28,6 +30,7 @@ class DDPGAgent:
         self.min_action_val = torch.FloatTensor(env.action_space.low).to(self.device)
         self.max_action_val = torch.FloatTensor(env.action_space.high).to(self.device)
         self.noise_std      = torch.FloatTensor(noise_std).to(self.device)
+        self.noise_mean     = torch.FloatTensor(noise_mean).to(self.device)
         
         
         # Randomly initialize the critic (Q) and actor (mu) network
@@ -84,7 +87,7 @@ class DDPGAgent:
         if not evaluate:
             #actions += torch.normal(mean = 0.0, std  = 0.1, size = actions.shape).to(self.device)
                         
-            actions += torch.normal(mean = 0.0,
+            actions += torch.normal(mean = self.noise_mean * (actions != 0),
                                     std  = self.noise_std * (actions != 0)).to(self.device)
             
             # Clip the action values to not exceed the boundaries

@@ -23,7 +23,7 @@ verbose_freq = 50
 
 figure_file = 'plots/CarRacing_rewards.png'
 
-do_wandb = True
+do_wandb = False
 
 if do_wandb:
     # Initialize our WandB client
@@ -73,11 +73,13 @@ metrics = []
 for e in range(episodes):
 
     state = env.reset()   # (96, 96, 1) image
+    state = preprocess(state)
     score = 0
 
     for step in range(step_size):
         # Sample an action from our actor network
         action = agent.getAction(state)[0]
+        train_action = action*4
               
         # Add a constant speed and no brake
         #action = np.append(action, [0.05, 0])
@@ -85,6 +87,9 @@ for e in range(episodes):
         
         # Take the action in our current state
         state_next, reward, done, done2, _ = env.step(action)
+        state_next = preprocess(state_next)
+        # plt.imshow(state_next, cmap = 'gray')
+        # plt.show()
         
         env.render()
         
@@ -117,14 +122,15 @@ for e in range(episodes):
                            })
 
         
+          
         
-        # Throw all our variables in the memory
-        train_action      = action*4
-        train_state       = preprocess(state)
-        traing_state_next = preprocess(state_next)
+        # train_state       = preprocess(state)
+        # train_state_next  = preprocess(state_next)
         # plt.imshow(train_state, cmap = 'gray')
         # plt.show()
-        agent.remember(train_state, train_action, reward, traing_state_next, np.array([done, done2]).any())
+        
+        # Throw all our variables in the memory
+        agent.remember(state, train_action, reward, state_next, np.array([done, done2]).any())
         
 
         # When we have enough state-action pairs, we can update our online nets
