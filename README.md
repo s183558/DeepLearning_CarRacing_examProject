@@ -13,7 +13,7 @@
 
         - Gym         (version 0.25.2)
         - Numpy       (version 1.23.4)
-	      - Matplotlib  (verion 3.5.2)
+	- Matplotlib  (verion 3.5.2)
         - wanb        (verion 0.13.5)
         - Torch       (verion 1.10.2)
 
