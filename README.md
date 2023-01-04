@@ -19,7 +19,9 @@
 
 # How to use it
     Colab:
-      Import the IPython notebook into Colab, and run it.
+      Import the IPython notebook into Colab, and run it. This will train the algorithm.
+      To run the best version of the algorithm, connect the 4 files in "Best_values_2D" to
+      the Colab and run everything down to, but not main.py. Then run the last section
       
     .py terminal:
       Run the main.py script, which will begin training the algorithm. 
